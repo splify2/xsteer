@@ -14,7 +14,7 @@
     "FileVersion":      "0.1.1",
     "ProductVersion":   "0.1.1",
     "LegalCopyright":   "xyzmean",
-    "Comments":         "https://github.com/xyzmean/xsteer"
+    "Comments":         "https://github.com/splify2/xsteer"
   },
   "VarFileInfo": {"Translation": {"LangID": "0419", "CharsetID": "04B0"}},
   "IconPath":     "../xsteer-gui/xsteer.ico",

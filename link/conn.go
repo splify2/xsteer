@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/xyzmean/xsteer/wire"
+	"github.com/splify2/xsteer/wire"
 )
 
 // Пороги. Значения взяты из движка на C, кроме особо отмеченных.

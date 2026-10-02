@@ -11,7 +11,7 @@ import (
 
 	"github.com/lxn/walk"
 	dcl "github.com/lxn/walk/declarative"
-	"github.com/xyzmean/xsteer/conf"
+	"github.com/splify2/xsteer/conf"
 	"golang.org/x/crypto/curve25519"
 )
 

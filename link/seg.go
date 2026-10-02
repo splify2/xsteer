@@ -21,7 +21,7 @@ package link
 import (
 	"encoding/binary"
 
-	"github.com/xyzmean/xsteer/csum"
+	"github.com/splify2/xsteer/csum"
 )
 
 // Флаги TCP и объявляемое окно.

@@ -75,7 +75,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
     ap.add_argument("--base", required=True, help="адрес сайта без косой на конце")
-    ap.add_argument("--repo", default="https://github.com/xyzmean/xsteer")
+    ap.add_argument("--repo", default="https://github.com/splify2/xsteer")
     ap.add_argument("--built", default="")
     ap.add_argument("--apk", default="", help="путь к собранному .apk")
     ap.add_argument("--apk-version", default="")

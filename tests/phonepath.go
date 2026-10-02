@@ -35,9 +35,9 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/xyzmean/xsteer/client"
-	"github.com/xyzmean/xsteer/conf"
-	"github.com/xyzmean/xsteer/tun"
+	"github.com/splify2/xsteer/client"
+	"github.com/splify2/xsteer/conf"
+	"github.com/splify2/xsteer/tun"
 	"golang.org/x/sys/unix"
 )
 

@@ -11,7 +11,7 @@ import (
 
 	"context"
 
-	"github.com/xyzmean/xsteer/conf"
+	"github.com/splify2/xsteer/conf"
 )
 
 func numCPU() int { return runtime.NumCPU() }

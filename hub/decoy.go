@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/xyzmean/xsteer/chello"
-	"github.com/xyzmean/xsteer/link"
-	"github.com/xyzmean/xsteer/noise"
-	"github.com/xyzmean/xsteer/wire"
+	"github.com/splify2/xsteer/chello"
+	"github.com/splify2/xsteer/link"
+	"github.com/splify2/xsteer/noise"
+	"github.com/splify2/xsteer/wire"
 )
 
 // Что делать с тем, кто постучался, но своим не оказался.

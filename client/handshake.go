@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/xyzmean/xsteer/link"
-	"github.com/xyzmean/xsteer/noise"
-	"github.com/xyzmean/xsteer/wire"
+	"github.com/splify2/xsteer/link"
+	"github.com/splify2/xsteer/noise"
+	"github.com/splify2/xsteer/wire"
 )
 
 // Одно рукопожатие на два транспорта.

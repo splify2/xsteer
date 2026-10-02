@@ -7,7 +7,7 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"github.com/xyzmean/xsteer/csum"
+	"github.com/splify2/xsteer/csum"
 )
 
 // mkTCP4 собирает настоящий пакет IPv4 с сегментом TCP: обе суммы верные, длины сходятся.

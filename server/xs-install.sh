@@ -28,7 +28,7 @@ PARAMS="$CONFDIR/params"
 UNIT=/etc/systemd/system/xsteer-hub.service
 NATUNIT=/etc/systemd/system/xsteer-nat.service
 NATBIN=/usr/local/sbin/xsteer-nat
-RELEASES=https://github.com/xyzmean/xsteer/releases/latest/download
+RELEASES=https://github.com/splify2/xsteer/releases/latest/download
 
 # Спросить с приглашением и значением по умолчанию.
 #
@@ -400,7 +400,7 @@ EOF
 Description=xsteer — хаб звезды
 After=network-online.target
 Wants=network-online.target
-Documentation=https://github.com/xyzmean/xsteer
+Documentation=https://github.com/splify2/xsteer
 
 [Service]
 Type=simple

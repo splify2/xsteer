@@ -2,7 +2,7 @@
 
 Свой VPN-протокол с обликом TLS: **обе половины** — клиент для настольных систем и хаб для сервера.
 Вторая реализация того же протокола; первая — движок на C в
-[steer](https://github.com/xyzmean/steer) (`src/ext/xs*.c`), который едет на роутеры OpenWrt.
+[steer](https://github.com/splify2/steer) (`src/ext/xs*.c`), который едет на роутеры OpenWrt.
 
 **Здесь протокол и развивается.** Облик на проводе, стойкость к зондированию и формат кадров
 меняются сначала тут, а в движок на C переносятся отдельной работой. Совместимость с ним при этом
@@ -435,7 +435,7 @@ sudo xs-quick up home                       # /etc/xsteer/home.conf или .link
 sudo systemctl enable --now xs-quick@home
 
 # хаб на сервере: вопросы, юнит, masquerade, меню выдачи пиров и QR для телефона
-curl -fsSLO https://raw.githubusercontent.com/xyzmean/xsteer/main/server/xs-install.sh
+curl -fsSLO https://raw.githubusercontent.com/splify2/xsteer/main/server/xs-install.sh
 sudo bash xs-install.sh
 
 # проверить конфигурацию, ничего не поднимая

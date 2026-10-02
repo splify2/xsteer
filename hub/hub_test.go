@@ -3,8 +3,8 @@ package hub
 import (
 	"testing"
 
-	"github.com/xyzmean/xsteer/conf"
-	"github.com/xyzmean/xsteer/wire"
+	"github.com/splify2/xsteer/conf"
+	"github.com/splify2/xsteer/wire"
 )
 
 // TestЁмкостьТаблицыСессийНеЗависитОтЯдер: полная звезда обязана помещаться в таблицу сессий при

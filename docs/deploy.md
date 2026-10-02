@@ -83,7 +83,7 @@ AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
 Одной командой, без клонирования хранилища:
 
 ```sh
-curl -fsSLO https://raw.githubusercontent.com/xyzmean/xsteer/main/server/xs-install.sh
+curl -fsSLO https://raw.githubusercontent.com/splify2/xsteer/main/server/xs-install.sh
 sudo bash xs-install.sh
 ```
 

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/xyzmean/xsteer/tun"
+	"github.com/splify2/xsteer/tun"
 )
 
 // На iOS туннель не даёт дескриптора: пакеты ходят вызовами через NEPacketTunnelFlow. Отказ

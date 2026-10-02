@@ -22,9 +22,9 @@ import (
 
 	"golang.org/x/crypto/curve25519"
 
-	"github.com/xyzmean/xsteer/link"
-	"github.com/xyzmean/xsteer/noise"
-	"github.com/xyzmean/xsteer/wire"
+	"github.com/splify2/xsteer/link"
+	"github.com/splify2/xsteer/noise"
+	"github.com/splify2/xsteer/wire"
 )
 
 // fakeRaw — сырой сокет, которого нет: отправленные сегменты складываются в память.

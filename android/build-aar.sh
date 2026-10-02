@@ -55,7 +55,7 @@ go tool gomobile bind \
     -target=android/arm64,android/arm,android/amd64,android/386 \
     -androidapi 24 \
     -o "$out/xsteer.aar" \
-    -ldflags "-s -w -X github.com/xyzmean/xsteer/mobile.version=$ver" \
+    -ldflags "-s -w -X github.com/splify2/xsteer/mobile.version=$ver" \
     .
 
 echo "== готово =="

@@ -9,12 +9,12 @@
 //
 // Цена решения одна: `go test ./...` в корне этот модуль НЕ видит, вложенные модули из перебора
 // исключаются. Поэтому его проверки запускаются отдельным шагом — см. .github/workflows/ci.yml.
-module github.com/xyzmean/xsteer/mobile
+module github.com/splify2/xsteer/mobile
 
 go 1.26.0
 
 require (
-	github.com/xyzmean/xsteer v0.0.0
+	github.com/splify2/xsteer v0.0.0
 	golang.org/x/crypto v0.55.0
 )
 
@@ -30,7 +30,7 @@ require (
 
 // Движок берётся из этого же дерева, а не из сети: мост и протокол правятся вместе, и версия
 // из сети означала бы, что мост собран не с тем кодом, который рядом лежит.
-replace github.com/xyzmean/xsteer => ../
+replace github.com/splify2/xsteer => ../
 
 tool (
 	golang.org/x/mobile/cmd/gobind

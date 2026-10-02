@@ -39,7 +39,7 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/xyzmean/xsteer/csum"
+	"github.com/splify2/xsteer/csum"
 )
 
 // ПОЛЯ ЗАГОЛОВКА VIRTIO ЧИТАЮТСЯ И ПИШУТСЯ В ПОРЯДКЕ ХОСТА, А НЕ В СЕТЕВОМ.

@@ -32,12 +32,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/xyzmean/xsteer/conf"
-	"github.com/xyzmean/xsteer/link"
-	"github.com/xyzmean/xsteer/noise"
-	"github.com/xyzmean/xsteer/route"
-	"github.com/xyzmean/xsteer/tun"
-	"github.com/xyzmean/xsteer/wire"
+	"github.com/splify2/xsteer/conf"
+	"github.com/splify2/xsteer/link"
+	"github.com/splify2/xsteer/noise"
+	"github.com/splify2/xsteer/route"
+	"github.com/splify2/xsteer/tun"
+	"github.com/splify2/xsteer/wire"
 )
 
 // Options — что нужно клиенту, чтобы подняться.
