@@ -16,7 +16,7 @@
 
 Свой VPN-протокол с обликом TLS: **обе половины** — клиент для настольных систем и хаб для сервера.
 Вторая реализация того же протокола; первая — на C, в ядре
-[steer](https://github.com/splify2/steer) (`src/ext/xs*.c`), который едет на роутеры OpenWrt.
+[steer](https://github.com/splify2/steer) (`src/proto/xsteer/`), который едет на роутеры OpenWrt.
 
 **Здесь протокол и развивается.** Облик на проводе, стойкость к зондированию и формат кадров
 меняются сначала тут, а в реализацию на C переносятся отдельной работой. Совместимость с ним при этом
@@ -410,15 +410,15 @@ xs://<приватный ключ пира>@<хост>:<порт>?pk=<публи
 
 | пакет | что внутри | откуда портирован |
 |---|---|---|
-| `wire` | запись `17 03 03`, nonce от относительного смещения, окно приёма, пределы соединения, согласование MTU | `src/ext/xswire.{c,h}` |
-| `conf` | конфигурация в стиле wg, строгий разбор, секреты отделены типом | `src/ext/xsconf.{c,h}` |
-| `route` | AllowedIPs самым длинным префиксом, право на адрес источника, TTL, подрезка MSS, хеш потока | `src/ext/xsroute.{c,h}` |
-| `chello` | ClientHello с обликом Chrome: сборка и разбор | `src/ext/reality.c`, `src/ext/chello.c` |
-| `noise` | Noise IK внутри Hello, транспортные ключи, AEAD | `src/ext/xshake.c`, `src/ext/tls13.c` |
-| `link` | поддельное TCP-соединение, сырой сокет, фильтр cBPF, правило против RST своего ядра | `src/ext/xsconn.{c,h}`, `src/obfs.c` |
-| `tun` | устройство (Linux; macOS и Windows — впереди) | `src/ext/tun.c` |
-| `client` | цикл пира: рукопожатие, данные, пачки, пробы пути, keepalive, пределы | `src/ext/xsclient.c` |
-| `hub` | центр звезды: сессии, раскладка по воркерам, пир↔пир, дорожка неопознанных | `src/ext/xshub.c` |
+| `wire` | запись `17 03 03`, nonce от относительного смещения, окно приёма, пределы соединения, согласование MTU | `src/proto/xsteer/xswire.{c,h}` |
+| `conf` | конфигурация в стиле wg, строгий разбор, секреты отделены типом | `src/proto/xsteer/xsconf.{c,h}` |
+| `route` | AllowedIPs самым длинным префиксом, право на адрес источника, TTL, подрезка MSS, хеш потока | `src/proto/xsteer/xsroute.{c,h}` |
+| `chello` | ClientHello с обликом Chrome: сборка и разбор | `src/proto/tls/reality.c`, `src/proto/tls/chello.c` |
+| `noise` | Noise IK внутри Hello, транспортные ключи, AEAD | `src/proto/xsteer/xshake.c`, `src/proto/tls/tls13.c` |
+| `link` | поддельное TCP-соединение, сырой сокет, фильтр cBPF, правило против RST своего ядра | `src/proto/xsteer/xsconn.{c,h}`, `src/proto/obfs/obfs.c` |
+| `tun` | устройство (Linux; macOS и Windows — впереди) | `src/tunnel/tun.c` |
+| `client` | цикл пира: рукопожатие, данные, пачки, пробы пути, keepalive, пределы | `src/proto/xsteer/xsclient.c` |
+| `hub` | центр звезды: сессии, раскладка по воркерам, пир↔пир, дорожка неопознанных | `src/proto/xsteer/xshub.c` |
 
 Три отличия от реализации на C — все про Go, ни одно про протокол:
 
