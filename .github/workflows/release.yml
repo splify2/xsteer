@@ -148,12 +148,55 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "v$VER" dist/* \
-            --title "xsteer $VER" \
-            --notes "Релиз $VER.
+          set -eu
+          # Текст — файлом: он же идёт в splify2/releases последним шагом.
+          cat > "$RUNNER_TEMP/release-notes.md" <<EOF
+          Релиз $VER.
 
           Архивы для Windows содержат xsteer.exe и wintun.dll — распакуйте оба в одну папку и
           запускайте от администратора. Суммы файлов — в SHA256SUMS.
 
           Для телефона — xsteer-android-$VER.apk. Страница установки со ссылкой и QR:
-          https://xyzmean.github.io/xsteer/"
+          https://xyzmean.github.io/xsteer/
+          EOF
+          gh release create "v$VER" dist/* \
+            --title "xsteer $VER" \
+            --notes-file "$RUNNER_TEMP/release-notes.md"
+
+      # splify2/releases — version.json, списки изменений и копии пакетов всех проектов: по нему
+      # установщик, роутер и сайт узнают о выпуске. Шаги последние: выпуск здесь к этому времени
+      # уже вышел. Без секрета RELEASES_TOKEN (токен с правом записи в splify2/releases) они
+      # пропускаются с предупреждением и выпуск не роняют.
+      - name: Доступ к splify2/releases
+        id: releases
+        env:
+          RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          if [ -n "$RELEASES_TOKEN" ]; then
+            echo "ok=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::нет секрета RELEASES_TOKEN — выпуск не опубликован в splify2/releases"
+          fi
+
+      - name: Клон splify2/releases
+        if: steps.releases.outputs.ok == '1'
+        uses: actions/checkout@v4
+        with:
+          repository: splify2/releases
+          token: ${{ secrets.RELEASES_TOKEN }}
+          path: splify2-releases
+
+      - name: Опубликовать в splify2/releases
+        if: steps.releases.outputs.ok == '1'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          set -eu
+          # Ровно те файлы, что ушли в выпуск выше (dist/*, с SHA256SUMS), и тот же текст.
+          cd splify2-releases
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          python3 scripts/publish.py --product xsteer --version "${VER#v}" --channel stable \
+            --source-tag "v$VER" --changelog "$RUNNER_TEMP/release-notes.md" \
+            --assets "$GITHUB_WORKSPACE/dist" \
+            --mirror "https://github.com/splify2/xsteer/releases/download/v$VER"
