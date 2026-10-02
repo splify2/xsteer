@@ -197,6 +197,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           python3 scripts/publish.py --product xsteer --version "${VER#v}" --channel stable \
+            --name "xsteer ${VER#v}" \
             --source-tag "v$VER" --changelog "$RUNNER_TEMP/release-notes.md" \
             --assets "$GITHUB_WORKSPACE/dist" \
             --mirror "https://github.com/splify2/xsteer/releases/download/v$VER"
