@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/xyzmean/xsteer/tun"
+	"github.com/splify2/xsteer/tun"
 )
 
 // sinkRec — получатель пакетов, запоминающий всё, что ему отдали.

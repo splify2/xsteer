@@ -30,7 +30,7 @@ class VersionPreference(context: Context, attrs: AttributeSet?) : Preference(con
 
     override fun onClick() {
         val intent = Intent(Intent.ACTION_VIEW)
-        intent.data = Uri.parse("https://github.com/xyzmean/xsteer")
+        intent.data = Uri.parse("https://github.com/splify2/xsteer")
         try {
             context.startActivity(intent)
         } catch (e: Throwable) {

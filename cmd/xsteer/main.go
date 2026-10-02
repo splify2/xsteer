@@ -23,11 +23,11 @@ import (
 	"golang.org/x/crypto/curve25519"
 	"golang.org/x/sys/cpu"
 
-	"github.com/xyzmean/xsteer/client"
-	"github.com/xyzmean/xsteer/conf"
-	"github.com/xyzmean/xsteer/hub"
-	"github.com/xyzmean/xsteer/noise"
-	"github.com/xyzmean/xsteer/wire"
+	"github.com/splify2/xsteer/client"
+	"github.com/splify2/xsteer/conf"
+	"github.com/splify2/xsteer/hub"
+	"github.com/splify2/xsteer/noise"
+	"github.com/splify2/xsteer/wire"
 )
 
 // Version — версия клиента. Печатается при подъёме и в состоянии: две реализации одного протокола

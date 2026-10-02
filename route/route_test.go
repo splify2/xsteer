@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/xyzmean/xsteer/conf"
+	"github.com/splify2/xsteer/conf"
 )
 
 func pfx(s string, plen int, peerNet uint32) conf.Allowed {

@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/xyzmean/xsteer/tun"
+	"github.com/splify2/xsteer/tun"
 )
 
 // PacketSink — куда уходят пакеты ИЗ туннеля наружу, то есть в систему. Реализуется на стороне

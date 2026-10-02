@@ -2,7 +2,7 @@
 
 package xsteer
 
-import "github.com/xyzmean/xsteer/tun"
+import "github.com/splify2/xsteer/tun"
 
 // Дескриптор туннеля бывает только там, где есть /dev/net/tun, то есть на Linux и на Android
 // (сборка под android включает тег linux). На iOS дескриптора нет вовсе — там пакеты ходят

@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"github.com/xyzmean/xsteer/route"
+	"github.com/splify2/xsteer/route"
 )
 
 // TestMinMTU — узкое место из двух согласованных размеров, с обработкой «ещё не согласован» (0).

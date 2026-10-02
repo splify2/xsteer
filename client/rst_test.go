@@ -23,8 +23,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/xyzmean/xsteer/link"
-	"github.com/xyzmean/xsteer/tun"
+	"github.com/splify2/xsteer/link"
+	"github.com/splify2/xsteer/tun"
 )
 
 // feedRaw — сырой сокет, у которого принятое подсовывается заранее: очередь пакетов, по одному на

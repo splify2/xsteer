@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/xyzmean/xsteer/conf"
-	"github.com/xyzmean/xsteer/noise"
-	"github.com/xyzmean/xsteer/wire"
+	"github.com/splify2/xsteer/conf"
+	"github.com/splify2/xsteer/noise"
+	"github.com/splify2/xsteer/wire"
 )
 
 // Режим потока на хабе: слушающий сокет ядра вместо поддельного TCP.

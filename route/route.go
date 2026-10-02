@@ -21,7 +21,7 @@
 // структуры — это гонка, которую детектор найдёт под нагрузкой, а не на стенде.
 package route
 
-import "github.com/xyzmean/xsteer/conf"
+import "github.com/splify2/xsteer/conf"
 
 // entry — один префикс с указанием, кому он принадлежит.
 type entry struct {

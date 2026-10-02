@@ -11,10 +11,10 @@ import (
 
 	"golang.org/x/crypto/curve25519"
 
-	"github.com/xyzmean/xsteer/client"
-	"github.com/xyzmean/xsteer/conf"
-	"github.com/xyzmean/xsteer/tun"
-	"github.com/xyzmean/xsteer/wire"
+	"github.com/splify2/xsteer/client"
+	"github.com/splify2/xsteer/conf"
+	"github.com/splify2/xsteer/tun"
+	"github.com/splify2/xsteer/wire"
 )
 
 // Logger — куда уходит журнал клиента. Реализуется на стороне платформы.

@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/xyzmean/xsteer/noise"
-	"github.com/xyzmean/xsteer/wire"
+	"github.com/splify2/xsteer/noise"
+	"github.com/splify2/xsteer/wire"
 )
 
 // streamAnswer прогоняет один Hello через streamConn и возвращает то, что хаб ответил.

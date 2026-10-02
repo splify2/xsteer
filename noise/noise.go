@@ -12,8 +12,8 @@ import (
 	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/hkdf"
 
-	"github.com/xyzmean/xsteer/chello"
-	"github.com/xyzmean/xsteer/wire"
+	"github.com/splify2/xsteer/chello"
+	"github.com/splify2/xsteer/wire"
 )
 
 // ProtoVer — версия протокола на проводе. Едет в подписанной части, и несовпадение называется

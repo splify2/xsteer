@@ -15,7 +15,7 @@ import (
 	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/hkdf"
 
-	"github.com/xyzmean/xsteer/wire"
+	"github.com/splify2/xsteer/wire"
 )
 
 type seeded struct{ r *rand.Rand }

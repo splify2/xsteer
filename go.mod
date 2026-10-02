@@ -1,4 +1,4 @@
-module github.com/xyzmean/xsteer
+module github.com/splify2/xsteer
 
 go 1.25.0
 

@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/xyzmean/xsteer/csum"
+	"github.com/splify2/xsteer/csum"
 )
 
 // ЯДРО КАК СУДЬЯ, ЧАСТЬ ПЕРВАЯ: кадр вообще доходит до стека TCP.

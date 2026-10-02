@@ -4,7 +4,7 @@ Description=xsteer — туннель %i
 # интерфейсу клиент читает ДО того, как встанут маршруты туннеля.
 After=network-online.target nss-lookup.target
 Wants=network-online.target
-Documentation=https://github.com/xyzmean/xsteer
+Documentation=https://github.com/splify2/xsteer
 
 [Service]
 # oneshot с RemainAfterExit — ровно как у wg-quick@.service, и по той же причине: юнит описывает
