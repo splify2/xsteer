@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unsafe"
 
@@ -290,39 +291,116 @@ func AddRoute(name, cidr string) error {
 	return run("ip", "route", "replace", cidr, "dev", name)
 }
 
-// SetupRoutes ставит маршруты AllowedIPs. На Linux расщепление маршрута по умолчанию и обход
-// для хаба здесь не нужны: полным туннелем на роутере управляет движок steer своими таблицами
-// и правилами (fwmark), а не этот клиент. Поэтому просто раскладываем префиксы как есть; аргумент
-// endpoints не используется и оставлен ради единой сигнатуры с Windows.
+// halves — две половины маршрута по умолчанию. Длиннее любого /0, поэтому бьют физический
+// маршрут при любых метриках, а снимаются поимённо и физического не трогают: `ip route replace`
+// на /0 с совпавшей метрикой ЗАМЕЩАЕТ маршрут из DHCP, и последующее `del` оставило бы машину без
+// маршрута по умолчанию вовсе.
+var halves = []string{"0.0.0.0/1", "128.0.0.0/1"}
+
+// state маршрутов по устройствам: что поставлено сторожем и какие обходы к хабу стоят.
+var (
+	routesMu  sync.Mutex
+	defaultUp = map[string]bool{}
+	bypassOf  = map[string][]string{}
+)
+
+// SetupRoutes ставит маршруты AllowedIPs, КРОМЕ маршрута по умолчанию. Тот ставит DefaultRouteUp,
+// и только после того, как туннель доказал пересылку: на Windows так и есть, и сторож
+// (routeGuard) обещает это дословно. Второе возвращаемое значение — «просили полный туннель»,
+// то есть маршрут по умолчанию отложен до подтверждения.
 //
-// Второе возвращаемое значение — «просили полный туннель». На Windows оно означает «маршрут по
-// умолчанию отложен до подтверждения», здесь — только осведомление вызывающего: маршрут уже
-// поставлен как обычный префикс, и отдельного шага ему не требуется.
+// endpoints — адреса хаба: полному туннелю (или префиксу, накрывающему хаб) ставится обход /32
+// через прежний маршрут, иначе собственное соединение клиента уйдёт в туннель. Полным туннелем
+// на роутере управляет ядро steer, а не этот клиент (там --managed), сюда это не доходит.
 func SetupRoutes(name string, cidrs, endpoints []string) (bool, error) {
-	_ = endpoints
-	full := false
-	for _, c := range cidrs {
+	rest, full := splitDefault(cidrs)
+	if full || endpointCovered(cidrs, endpoints) {
+		// Обход читается ДО маршрутов туннеля: после них `ip route get` указал бы на туннель.
+		for _, ep := range endpoints {
+			addr, err := netip.ParseAddr(strings.TrimSpace(ep))
+			if err != nil || !addr.Is4() {
+				continue
+			}
+			if err := addBypass(name, addr); err != nil {
+				return full, err
+			}
+		}
+	}
+	for _, c := range rest {
 		if err := AddRoute(name, c); err != nil {
 			return full, err
-		}
-		if p, e := netip.ParsePrefix(strings.TrimSpace(c)); e == nil && p.Bits() == 0 && p.Addr().Is4() {
-			full = true
 		}
 	}
 	return full, nil
 }
 
-// DefaultRouteUp на Linux уже сделан в SetupRoutes: 0.0.0.0/0 ставится обычным `ip route replace`
-// на устройство, и спорить с физическим маршрутом по метрикам здесь не приходится.
-func DefaultRouteUp(name string) error { _ = name; return nil }
+// addBypass ставит /32 к хабу по маршруту, который система выбрала бы для него сейчас.
+func addBypass(name string, addr netip.Addr) error {
+	out, err := exec.Command("ip", "-4", "route", "get", addr.String()).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("маршрут до хаба %s не определился: %v: %s", addr, err, out)
+	}
+	via, dev := parseRouteGet(string(out))
+	if dev == "" || dev == name {
+		return fmt.Errorf("маршрут до хаба %s ведёт не в физический интерфейс (%q)", addr, dev)
+	}
+	args := []string{"route", "replace", addr.String() + "/32"}
+	if via != "" {
+		args = append(args, "via", via)
+	}
+	args = append(args, "dev", dev)
+	if err := run(append([]string{"ip"}, args...)...); err != nil {
+		return err
+	}
+	routesMu.Lock()
+	bypassOf[name] = append(bypassOf[name], addr.String()+"/32")
+	routesMu.Unlock()
+	return nil
+}
 
-// DefaultRouteDown на Linux снимает маршрут по умолчанию с устройства. Ошибку глотаем: если
-// маршрута уже нет, снимать нечего, и это не повод шуметь на выходе.
-func DefaultRouteDown(name string) { _ = run("ip", "route", "del", "0.0.0.0/0", "dev", name) }
+// DefaultRouteUp уводит маршрут по умолчанию в туннель двумя половинами. Зовётся ТОЛЬКО после
+// того, как туннель подтвердил, что несёт трафик.
+func DefaultRouteUp(name string) error {
+	routesMu.Lock()
+	defer routesMu.Unlock()
+	if defaultUp[name] {
+		return nil
+	}
+	for _, h := range halves {
+		if err := AddRoute(name, h); err != nil {
+			// Одна половина без второй — половина интернета в туннеле, половина мимо.
+			for _, d := range halves {
+				_ = run("ip", "route", "del", d, "dev", name)
+			}
+			return fmt.Errorf("половина маршрута по умолчанию %s не встала: %w", h, err)
+		}
+	}
+	defaultUp[name] = true
+	return nil
+}
 
-// DefaultRouteIsUp на Linux не отслеживается отдельно: маршрут ставится сразу и живёт с
-// устройством.
-func DefaultRouteIsUp(name string) bool { _ = name; return true }
+// DefaultRouteDown возвращает маршрут по умолчанию физическому интерфейсу: снимаются ровно наши
+// две половины, физический /0 мы никогда не трогали и он снова лучший сам. Ошибки глотаем: нет
+// маршрута — нечего снимать.
+func DefaultRouteDown(name string) {
+	routesMu.Lock()
+	up := defaultUp[name]
+	defaultUp[name] = false
+	routesMu.Unlock()
+	if !up {
+		return
+	}
+	for _, h := range halves {
+		_ = run("ip", "route", "del", h, "dev", name)
+	}
+}
+
+// DefaultRouteIsUp — держит ли туннель маршрут по умолчанию прямо сейчас.
+func DefaultRouteIsUp(name string) bool {
+	routesMu.Lock()
+	defer routesMu.Unlock()
+	return defaultUp[name]
+}
 
 // SetDNS на Linux не трогает /etc/resolv.conf: клиент живёт на роутере, где именами
 // распоряжается dnsmasq, и переписывать его файл из-под туннеля значило бы драться с ним за
@@ -335,8 +413,18 @@ func SetDNS(name string, servers []string) error {
 	return fmt.Errorf("DNS из конфигурации на Linux не применяется: настройте резолвер сами")
 }
 
-// TeardownRoutes на Linux снимать нечего: маршруты уходят с устройством.
-func TeardownRoutes(name string) { _ = name }
+// TeardownRoutes снимает половины маршрута по умолчанию и обходы к хабу: маршруты туннеля уходят
+// с устройством, а обход живёт на физическом интерфейсе и сам не исчезнет.
+func TeardownRoutes(name string) {
+	DefaultRouteDown(name)
+	routesMu.Lock()
+	by := bypassOf[name]
+	delete(bypassOf, name)
+	routesMu.Unlock()
+	for _, b := range by {
+		_ = run("ip", "route", "del", b)
+	}
+}
 
 // DevMTU — MTU, который сейчас стоит на устройстве.
 func DevMTU(name string) int {

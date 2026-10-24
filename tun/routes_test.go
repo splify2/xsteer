@@ -38,3 +38,31 @@ func TestEndpointCovered(t *testing.T) {
 		t.Fatal("ни один из этих префиксов не содержит 109.x")
 	}
 }
+
+// Маршрут по умолчанию не раскладывается вместе с остальными: его ставит сторож после
+// доказательства пересылки (I-275).
+func TestSplitDefaultОтделяетНулевойПрефикс(t *testing.T) {
+	rest, full := splitDefault([]string{"10.0.0.0/8", " 0.0.0.0/0 ", "::/0", "192.168.0.0/16"})
+	if !full {
+		t.Fatal("0.0.0.0/0 не распознан как полный туннель")
+	}
+	if len(rest) != 3 || rest[0] != "10.0.0.0/8" || rest[1] != "::/0" || rest[2] != "192.168.0.0/16" {
+		t.Fatalf("остаток %v: /0 IPv4 обязан уйти, прочее — остаться", rest)
+	}
+	if rest, full := splitDefault([]string{"10.0.0.0/8"}); full || len(rest) != 1 {
+		t.Fatalf("без /0 полного туннеля нет: %v %v", rest, full)
+	}
+}
+
+func TestParseRouteGet(t *testing.T) {
+	for _, c := range []struct{ in, via, dev string }{
+		{"203.0.113.5 via 192.168.1.1 dev eth0 src 192.168.1.50 uid 1000\n    cache\n", "192.168.1.1", "eth0"},
+		{"203.0.113.5 dev wlan0 src 10.0.0.7 uid 0\n", "", "wlan0"},
+		{"", "", ""},
+	} {
+		via, dev := parseRouteGet(c.in)
+		if via != c.via || dev != c.dev {
+			t.Errorf("%q: via=%q dev=%q, ждали %q %q", c.in, via, dev, c.via, c.dev)
+		}
+	}
+}

@@ -98,7 +98,7 @@ type offload struct {
 	segN    int // сколько сегментов в кадре
 	segI    int // сколько уже отдано
 	v6      bool
-	iph     int // длина заголовка IP супер-кадра (у IPv4 бывают опции)
+	iph     int    // длина заголовка IP супер-кадра (у IPv4 бывают опции)
 	single  []byte // одиночный пакет: отдаём как есть, без пересчёта
 	baseSeq uint32
 	baseID  uint16
