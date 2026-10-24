@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"net/netip"
 	"strings"
+	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/sys/windows"
@@ -43,6 +45,8 @@ type winDev struct {
 
 	mu     sync.Mutex
 	closed bool
+
+	oversize atomic.Uint64 // отброшенные пакеты длиннее буфера
 }
 
 // Реестр «имя → LUID»: настройка адреса и маршрутов на Windows идёт по LUID адаптера, а наш
@@ -122,10 +126,15 @@ func (d *winDev) Read(p []byte) (int, error) {
 			n := copy(p, pkt)
 			d.session.ReleaseReceivePacket(pkt)
 			if n < len(pkt) {
-				// Пакет длиннее буфера означает, что MTU устройства больше, чем мы готовы нести;
-				// молча отдать половину пакета нельзя — он не соберётся никогда.
-				return 0, fmt.Errorf("пакет %d байт не влез в буфер %d: MTU устройства больше "+
-					"согласованного", len(pkt), len(p))
+				// Пакет длиннее буфера: отдать половину нельзя — он не соберётся никогда. Но и
+				// обрывать из-за него путь данных нельзя: один такой пакет (приложение с
+				// DF-флагом, пока PMTU не сошёлся) стоил бы туннеля целиком. Отбрасываем, как
+				// это сделал бы любой канал с меньшим MTU, и называем в журнале.
+				if k := d.oversize.Add(1); k == 1 || k%1000 == 0 {
+					fmt.Fprintf(os.Stderr, "wintun: пакет %d байт не влез в буфер %d (MTU устройства "+
+						"больше согласованного) — отброшен, всего %d\n", len(pkt), len(p), k)
+				}
+				continue
 			}
 			return n, nil
 		case windows.ERROR_NO_MORE_ITEMS:
