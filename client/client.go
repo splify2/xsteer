@@ -276,7 +276,12 @@ func clampMTU(mtu int) int {
 	return mtu
 }
 
-func nowMS() int64 { return time.Now().UnixNano() / int64(time.Millisecond) }
+// epoch — точка отсчёта монотонных часов: time.Since использует монотонную составляющую, а
+// UnixNano — стенные часы, которые прыгают при синхронизации и выходе из сна. +1 — чтобы
+// «ноль» оставался признаком «ещё не было».
+var epoch = time.Now()
+
+func nowMS() int64 { return int64(time.Since(epoch)/time.Millisecond) + 1 }
 
 // tunnelable — годится ли кадр из устройства в туннель. Негодный сосчитан и назван в журнале;
 // вызывающий его просто пропускает.
@@ -1365,7 +1370,7 @@ func (c *Client) timeLoop(ctx context.Context, id int, s *sess, dev tun.Device, 
 			return fmt.Errorf("путь молчит %d мс при активной отправке — поднимаю заново",
 				link.DeadMS)
 		}
-		now := time.Now().UnixNano() / int64(time.Millisecond)
+		now := nowMS()
 
 		if s.probing {
 			if s.probeSent == 0 || now-s.probeSent >= wire.ProbeWaitMS {
@@ -1502,7 +1507,7 @@ func (c *Client) probeDone(s *sess, id int, dev tun.Device, devName string) {
 	if every <= 0 {
 		every = wire.ProbeEveryMS * time.Millisecond
 	}
-	s.probeNext = time.Now().Add(every).UnixNano() / int64(time.Millisecond)
+	s.probeNext = nowMS() + every.Milliseconds()
 	if s.pLo <= wire.MTUFloor {
 		// Не подтвердился ни один размер выше низа. Остаёмся на нём — и ГОВОРИМ об этом: молча
 		// работать вдвое медленнее возможного это ровно тот отказ, который никто не заметит.

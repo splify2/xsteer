@@ -1065,7 +1065,12 @@ func (s *session) idleMS() int64 {
 	return s.conn.Idle()
 }
 
-func nowMS() int64 { return time.Now().UnixNano() / int64(time.Millisecond) }
+// epoch — точка отсчёта монотонных часов: time.Since использует монотонную составляющую, а
+// UnixNano — стенные часы, которые прыгают при синхронизации и выходе из сна. +1 — чтобы
+// «ноль» оставался признаком «ещё не было».
+var epoch = time.Now()
+
+func nowMS() int64 { return int64(time.Since(epoch)/time.Millisecond) + 1 }
 
 func ip4str(v uint32) string {
 	return fmt.Sprintf("%d.%d.%d.%d", byte(v>>24), byte(v>>16), byte(v>>8), byte(v))

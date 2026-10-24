@@ -282,11 +282,12 @@ func Open(raw Raw, daddr [4]byte, dport int, shard int, isnTX uint32, sport uint
 	return c, nil
 }
 
-func nowMS() int64 {
-	// Монотонные часы: время стенное на десктопе прыгает при синхронизации и при выходе из сна, и
-	// «тишина сорок пять секунд» случилась бы на ровном месте — как раз после пробуждения ноутбука.
-	return time.Now().UnixNano() / int64(time.Millisecond)
-}
+// epoch — точка отсчёта монотонных часов: time.Since использует монотонную составляющую, а
+// UnixNano — стенные часы, которые прыгают при синхронизации и выходе из сна. +1 — чтобы
+// «ноль» оставался признаком «ещё не было».
+var epoch = time.Now()
+
+func nowMS() int64 { return int64(time.Since(epoch)/time.Millisecond) + 1 }
 
 func (c *Conn) Close() error {
 	c.mu.Lock()
@@ -486,7 +487,7 @@ func (c *Conn) OnSeg(s *Seg) (data bool, err error) {
 	// принимаем мы при загрузке пятьдесят тысяч сегментов в секунду. По таймеру голых ACK выходило
 	// восемь штук на восемь мегабайт — то есть признак «туннель, а не загрузка» оставался на месте.
 	if c.rxSinceAck >= AckBare {
-		if now := time.Now().UnixNano(); now-c.lastBare >= AckBareGapNS {
+		if now := int64(time.Since(epoch))+1; now-c.lastBare >= AckBareGapNS {
 			_ = c.send(ACK, nil, OptNone)
 			c.rxSinceAck = 0
 			c.lastBare = now
