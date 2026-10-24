@@ -8,6 +8,7 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"time"
 
 	"golang.org/x/crypto/curve25519"
 
@@ -409,9 +410,18 @@ func (t *Tunnel) Stop() {
 		dev.Close()
 	}
 	if done != nil {
-		<-done
+		// Срок обязателен: зависшая горутина клиента (сокет, который не отпускает) иначе
+		// повесила бы stopTunnel навсегда, и систему устроило бы только убийство процесса. Отсрочка
+		// закрытия — до трёх секунд, так что пять с запасом.
+		select {
+		case <-done:
+		case <-time.After(stopWait):
+		}
 	}
 }
+
+// stopWait — сколько Stop ждёт завершения клиента.
+const stopWait = 5 * time.Second
 
 // Inject кладёт пакет от системы в туннель. Зовётся на каждый пакет из readPackets.
 func (t *Tunnel) Inject(p []byte) {
