@@ -98,6 +98,7 @@ type offload struct {
 	segN    int // сколько сегментов в кадре
 	segI    int // сколько уже отдано
 	v6      bool
+	iph     int // длина заголовка IP супер-кадра (у IPv4 бывают опции)
 	single  []byte // одиночный пакет: отдаём как есть, без пересчёта
 	baseSeq uint32
 	baseID  uint16
@@ -225,7 +226,7 @@ func (o *offload) take(frame []byte) {
 	}
 	switch gsoType {
 	case vnetGSOTCPv4:
-		if pkt[0]>>4 != 4 || int(pkt[0]&0x0F)*4+20 > hdrLen {
+		if pkt[0]>>4 != 4 || pkt[0]&0x0F < 5 || int(pkt[0]&0x0F)*4+20 > hdrLen {
 			o.Dropped++
 			return
 		}
@@ -244,7 +245,12 @@ func (o *offload) take(frame []byte) {
 	iph := 20
 	if o.v6 {
 		iph = 40
+	} else {
+		// Опции IP у IPv4 сдвигают TCP: жёсткие 20 байт читали бы за заголовок TCP хвост
+		// опций и считали суммы не над теми байтами.
+		iph = int(pkt[0]&0x0F) * 4
 	}
+	o.iph = iph
 	th := pkt[iph:hdrLen]
 	if len(th) < 20 {
 		o.Dropped++
@@ -287,10 +293,7 @@ func (o *offload) emit(p []byte) (int, error) {
 	copy(p[len(o.hdr):], o.body[off:end])
 	seg := p[:n]
 
-	iph := 20
-	if o.v6 {
-		iph = 40
-	}
+	iph := o.iph
 	// th — ВСЯ часть TCP, а не только заголовок: по её длине считается сумма. Срез по длине
 	// заголовка давал сумму, посчитанную над двадцатью байтами вместо сегмента целиком, — то есть
 	// пакет с неверной суммой, который стек пира выбрасывает молча.
@@ -311,7 +314,7 @@ func (o *offload) emit(p []byte) (int, error) {
 		// Идентификатор растёт на сегмент — так же, как в inet_gso_segment.
 		binary.BigEndian.PutUint16(seg[4:6], o.baseID+uint16(i))
 		seg[10], seg[11] = 0, 0
-		binary.BigEndian.PutUint16(seg[10:12], csum.Of(seg[:20]))
+		binary.BigEndian.PutUint16(seg[10:12], csum.Of(seg[:iph]))
 	}
 	// Сумма TCP считается полностью: в супер-кадре лежала неполная (сумма псевдозаголовка по ВСЕЙ
 	// его длине), и для сегмента она не годится ни одним байтом.
@@ -455,7 +458,8 @@ func (o *offload) startRun(p []byte, r tcpRun) {
 	o.wrIPH = r.iph
 	o.wrV6 = r.v6
 	o.wrSeq = r.seq + uint32(r.plen)
-	o.wrShut = false
+	// Пакет с FIN сам закрывает пробег: продолжение после него склеивать нельзя.
+	o.wrShut = r.flags&0x01 != 0
 }
 
 // appendRun добавляет нагрузку к пробегу.

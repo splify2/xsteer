@@ -277,6 +277,26 @@ func TestOffloadFinClosesRun(t *testing.T) {
 	}
 }
 
+// TestOffloadFinFirstClosesRun — FIN на ПЕРВОМ пакете пробега тоже закрывает его: продолжение
+// обязано уехать отдельным кадром (раньше закрывал только FIN на добавленном сегменте).
+func TestOffloadFinFirstClosesRun(t *testing.T) {
+	fin := mkTCP4(t, 1, 12345, 443, 0x1000, 0x9000, 0x11, 0, make([]byte, 100))
+	after := mkTCP4(t, 2, 12345, 443, 0x1000+100, 0x9000, 0x10, 0, make([]byte, 100))
+	var frames int
+	o := newOffload(nil, func(p []byte) (int, error) { frames++; return len(p), nil })
+	for _, p := range [][]byte{fin, after} {
+		if _, err := o.write(p); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := o.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	if frames != 2 {
+		t.Fatalf("кадров %d, ожидалось 2", frames)
+	}
+}
+
 // TestOffloadCompletesPartialSum — ядро отдаёт пакеты СВОИХ сокетов с НЕПОЛНОЙ суммой: в поле лежит
 // сумма псевдозаголовка, тело не просуммировано. Отдать такой пакет в туннель как есть значит
 // отдать пиру пакет, который его же стек молча выбросит, — ровно тот отказ, который в этом проекте
