@@ -4,7 +4,6 @@ package tun
 
 import (
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"net/netip"
 	"os"
@@ -485,28 +484,9 @@ func SetupRoutes(name string, cidrs, endpoints []string) (bool, error) {
 // addEndpointBypass ставит /32 к каждому адресу хаба через ПРЕЖНИЙ маршрут по умолчанию —
 // тот, что был до туннеля, — чтобы пакеты самого туннеля продолжали ходить физическим каналом.
 func addEndpointBypass(r *devRoutes, endpoints []string) error {
-	rows, err := winipcfg.GetIPForwardTable2(windows.AF_INET)
+	best, _, err := physicalDefault(r.luid)
 	if err != nil {
-		return fmt.Errorf("таблица маршрутов не прочиталась: %w", err)
-	}
-	// Лучший физический маршрут по умолчанию: нулевой префикс, не наш туннель, наименьшая
-	// метрика. Его шлюз и интерфейс и станут обходом для хаба.
-	var best *winipcfg.MibIPforwardRow2
-	for i := range rows {
-		row := &rows[i]
-		if row.InterfaceLUID == r.luid {
-			continue
-		}
-		dp := row.DestinationPrefix.Prefix()
-		if dp.Bits() != 0 || !dp.Addr().Is4() {
-			continue
-		}
-		if best == nil || row.Metric < best.Metric {
-			best = row
-		}
-	}
-	if best == nil {
-		return errors.New("не нашёл физический маршрут по умолчанию — обход для хаба поставить не на что")
+		return fmt.Errorf("%w — обход для хаба поставить не на что", err)
 	}
 	gw := best.NextHop.Addr()
 	physLUID := best.InterfaceLUID

@@ -5,6 +5,7 @@ package tun
 import (
 	"errors"
 	"fmt"
+	"os"
 	"syscall"
 
 	"golang.org/x/sys/windows"
@@ -29,18 +30,25 @@ import (
 // в хостовом. Ошибка здесь не заметна на глаз: опция примется, а пакеты пойдут не туда.
 const ipUnicastIF = 31 // IP_UNICAST_IF, уровень IPPROTO_IP
 
-// PhysicalIndex — индекс интерфейса, через который система выходит наружу, не считая устройства
-// dev (нашего туннеля). Читается ДО того, как в таблицу встанут маршруты туннеля.
-func PhysicalIndex(dev string) (uint32, error) {
-	var skip winipcfg.LUID
-	if l, err := luidOf(dev); err == nil {
-		skip = l
-	}
+// physicalDefault — маршрут по умолчанию, которым система выходит наружу, не считая skip (наш
+// туннель). Действующая метрика складывается из метрики интерфейса и смещения маршрута (см.
+// pickDefault), поэтому читаются обе таблицы. Возвращает строку маршрута целиком: шлюз и
+// интерфейс нужны и обходу для хаба.
+func physicalDefault(skip winipcfg.LUID) (*winipcfg.MibIPforwardRow2, bool, error) {
 	rows, err := winipcfg.GetIPForwardTable2(windows.AF_INET)
 	if err != nil {
-		return 0, fmt.Errorf("таблица маршрутов не прочиталась: %w", err)
+		return nil, false, fmt.Errorf("таблица маршрутов не прочиталась: %w", err)
 	}
-	var best *winipcfg.MibIPforwardRow2
+	ifs, err := winipcfg.GetIPInterfaceTable(windows.AF_INET)
+	if err != nil {
+		return nil, false, fmt.Errorf("таблица интерфейсов не прочиталась: %w", err)
+	}
+	ifMetric := make(map[uint32]uint32, len(ifs))
+	for _, r := range ifs {
+		ifMetric[r.InterfaceIndex] = r.Metric
+	}
+	var cand []defRoute
+	byIdx := map[uint32]*winipcfg.MibIPforwardRow2{}
 	for i := range rows {
 		row := &rows[i]
 		if skip != 0 && row.InterfaceLUID == skip {
@@ -50,12 +58,34 @@ func PhysicalIndex(dev string) (uint32, error) {
 		if dp.Bits() != 0 || !dp.Addr().Is4() {
 			continue
 		}
-		if best == nil || row.Metric < best.Metric {
-			best = row
+		cand = append(cand, defRoute{Index: row.InterfaceIndex, Offset: row.Metric})
+		// У интерфейса может быть несколько /0: берём с меньшим смещением, как и pickDefault.
+		if old, ok := byIdx[row.InterfaceIndex]; !ok || row.Metric < old.Metric {
+			byIdx[row.InterfaceIndex] = row
 		}
 	}
-	if best == nil {
-		return 0, errors.New("не нашёл физический маршрут по умолчанию")
+	best, ok, tie := pickDefault(cand, ifMetric)
+	if !ok {
+		return nil, false, errors.New("не нашёл физический маршрут по умолчанию")
+	}
+	return byIdx[best.Index], tie, nil
+}
+
+// PhysicalIndex — индекс интерфейса, через который система выходит наружу, не считая устройства
+// dev (нашего туннеля), и его имя для журнала: по строке «привязано к интерфейсу N» человек
+// должен суметь проверить выбор. Читается ДО того, как в таблицу встанут маршруты туннеля.
+func PhysicalIndex(dev string) (uint32, error) {
+	var skip winipcfg.LUID
+	if l, err := luidOf(dev); err == nil {
+		skip = l
+	}
+	best, tie, err := physicalDefault(skip)
+	if err != nil {
+		return 0, err
+	}
+	if tie {
+		fmt.Fprintf(os.Stderr, "xsteer: у нескольких интерфейсов одинаковая метрика маршрута по "+
+			"умолчанию — взят интерфейс %d (с меньшим индексом)\n", best.InterfaceIndex)
 	}
 	return best.InterfaceIndex, nil
 }
