@@ -4,6 +4,7 @@ package client
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"golang.org/x/sys/unix"
@@ -123,11 +124,26 @@ func (c *Client) netlinkSub(ctx context.Context, ev chan struct{}) func() {
 		c.logf("сеть: подписка на netlink не встала (%v) — остаётся опрос раз в %s", err, netPoll)
 		return nil
 	}
+	// Дескриптор принадлежит ОДНОЙ горутине — той, что читает. Закрытие из чужой горутины на
+	// блокированном recvfrom не будит его, а номер дескриптора уходит в оборот и может достаться
+	// чужому сокету. Поэтому чтение с таймаутом: горутина сама видит запрос остановки и сама
+	// закрывает.
+	_ = unix.SetsockoptTimeval(fd, unix.SOL_SOCKET, unix.SO_RCVTIMEO,
+		&unix.Timeval{Usec: 500 * 1000})
+	stop := make(chan struct{})
+	done := make(chan struct{})
 	go func() {
+		defer close(done)
+		defer unix.Close(fd)
 		buf := make([]byte, 8192)
 		for ctx.Err() == nil {
+			select {
+			case <-stop:
+				return
+			default:
+			}
 			n, _, err := unix.Recvfrom(fd, buf, 0)
-			if err == unix.EINTR {
+			if err == unix.EINTR || err == unix.EAGAIN {
 				continue
 			}
 			if err != nil || n <= 0 {
@@ -140,5 +156,9 @@ func (c *Client) netlinkSub(ctx context.Context, ev chan struct{}) func() {
 			}
 		}
 	}()
-	return func() { unix.Close(fd) }
+	var once sync.Once
+	return func() {
+		once.Do(func() { close(stop) })
+		<-done
+	}
 }
