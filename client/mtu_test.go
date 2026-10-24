@@ -167,7 +167,8 @@ func TestMTUЧужогоУстройстваЗажатПотолком(t *testin
 		// требование к размеру буфера живёт в link.SendRecord, и пересказывать его здесь значило бы
 		// проверять пересказ.
 		conn, raw := standConn(t)
-		s := &sess{conn: conn, tx: standKeys(t), batchMax: 2}
+		s := &sess{conn: conn, tx: standKeys(t)}
+		s.batchMax.Store(2)
 		row := make([]byte, wire.HdrRoom+wire.MaxRecord+wire.Tag)
 		scratch := make([]byte, contLen)
 		// Два кадра предельного размера: запись из них больше любого сегмента, то есть режется

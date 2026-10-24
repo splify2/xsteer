@@ -857,17 +857,16 @@ type sess struct {
 
 	// ---- пачки и сборка разрезанных записей ----
 	//
-	// reasm принадлежит горутине приёма, batchMax и coolUntil — читаются отправкой и правятся
-	// горутиной времени по обратной связи. Величины целые и меняются раз в секунды, поэтому
-	// согласовывать их сложнее, чем стоит: худшее, что даст расхождение на такт, — одна запись,
-	// собранная не с тем размером пачки.
+	// reasm принадлежит горутине приёма. batchMax и coolUntil пишет и горутина приёма (потеря у
+	// хаба), и горутина времени (рост), а читает отправка, поэтому они атомарные: на обычных
+	// int это гонка данных, и «схлопни немедленно» могло потеряться под растущим batchMax.
 	reasm     wire.Reasm
 	lastDrops uint64
 	// batchMax — сколько кадров класть в одну запись СЕЙЧАС. Не постоянная: разрезанная запись
 	// гибнет целиком при потере любого сегмента, поэтому на рваном пути пачка обязана схлопываться
 	// до одного кадра. Растёт по чистой обратной связи, падает мгновенно.
-	batchMax   int
-	coolUntil  int64
+	batchMax   atomic.Int64
+	coolUntil  atomic.Int64
 	lastReport int64
 	lastGrow   int64
 
@@ -895,9 +894,10 @@ func (c *Client) session(ctx context.Context, id int, dev tun.Device, devName st
 	// делает» неотличимым от «SYN не уходит», и ровно на это уходит первый живой прогон.
 	c.logf("соединение %d: подключаюсь к %s с порта %d", id, c.hub.str, conn.SPort)
 
-	s := &sess{conn: conn, packs: make(chan int, 4), batchMax: 2}
+	s := &sess{conn: conn, packs: make(chan int, 4)}
+	s.batchMax.Store(2)
 	if c.opt.NoBatch {
-		s.batchMax = 1
+		s.batchMax.Store(1)
 	}
 	s.mtuCap = c.opt.Conf.MTU
 	buf := make([]byte, wire.Row)
@@ -1048,8 +1048,8 @@ func (c *Client) outbound(ctx context.Context, id int, s *sess, dev tun.Device) 
 			continue
 		}
 		mtu := int(c.mtuNow.Load())
-		max := s.batchMax
-		if nowMS() < s.coolUntil {
+		max := int(s.batchMax.Load())
+		if nowMS() < s.coolUntil.Load() {
 			max = 1
 		}
 		frames = frames[:0]
@@ -1307,8 +1307,8 @@ func (c *Client) onCtlFrame(s *sess, id int, pt []byte) {
 	// схлопнуть немедленно. Без этой обратной связи одна потеря стоила бы всей пачки, и на рваном
 	// пути пачки делали бы хуже, а не лучше.
 	if n := wire.LossValue(pt); n > 0 {
-		s.batchMax = 1
-		s.coolUntil = nowMS() + reasmCooldownMS
+		s.batchMax.Store(1)
+		s.coolUntil.Store(nowMS() + reasmCooldownMS)
 		c.logf("соединение %d: хаб не собрал %d записей — везу по одному кадру", id, n)
 	}
 }
@@ -1445,12 +1445,10 @@ func (c *Client) timeLoop(ctx context.Context, id int, s *sess, dev tun.Device, 
 			}
 		}
 		// Рост пачки на чистом пути: медленно вверх, мгновенно вниз (см. onCtlFrame).
-		if !c.opt.NoBatch && now >= s.coolUntil && now-s.lastGrow >= reasmGrowMS &&
-			s.batchMax < wire.BatchFramesMax {
-			s.batchMax *= 2
-			if s.batchMax > wire.BatchFramesMax {
-				s.batchMax = wire.BatchFramesMax
-			}
+		if bm := s.batchMax.Load(); !c.opt.NoBatch && now >= s.coolUntil.Load() &&
+			now-s.lastGrow >= reasmGrowMS && bm < wire.BatchFramesMax {
+			// CAS: если за это время пришла потеря и схлопнула пачку, рост её не затирает.
+			s.batchMax.CompareAndSwap(bm, min(bm*2, wire.BatchFramesMax))
 			s.lastGrow = now
 		}
 

@@ -84,7 +84,8 @@ func TestRSTНаЖивомСоединенииЗаканчиваетПриём(t
 	// Номер RST — ровно тот, которого соединение ждёт (c.ack после рукопожатия): с любым другим
 	// OnSeg его отвергнет, и это уже проверено в link (TestOnSegRSTNeedsExpectedSeq).
 	raw.pkts = append(raw.pkts, segPkt(standISN+1, link.RST))
-	s := &sess{conn: conn, packs: make(chan int, 4), batchMax: 2}
+	s := &sess{conn: conn, packs: make(chan int, 4)}
+	s.batchMax.Store(2)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
