@@ -367,7 +367,10 @@ type session struct {
 	// batchMax — сколько кадров хаб везёт одной записью ЭТОМУ пиру. Атомарное по той же причине,
 	// что mtu: правит его владелец (onCtl по обратной связи «записи не собираются» и обслуживание,
 	// растящее пачку), а читает набор пачки в цикле TUN любого воркера.
-	batchMax   atomic.Int32
+	batchMax atomic.Int32
+	// peerSplit — пир объявил FlagSplit; без него batchMax остаётся 1 и не растёт. Пишет воркер-
+	// владелец в confirm, до публикации сессии.
+	peerSplit  bool
 	coolUntil  int64
 	lastReport int64
 	lastGrow   int64

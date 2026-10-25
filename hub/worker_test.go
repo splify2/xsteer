@@ -1008,3 +1008,27 @@ func TestНеподтверждённаяВытесняетсяПервой(t *t
 		}
 	}
 }
+
+// Пир без FlagSplit (прежняя версия): пачка стоит на одном кадре и не растёт; с битом — как раньше.
+func TestПирБезFlagSplitНеПачкуется(t *testing.T) {
+	s := &session{}
+	s.batchMax.Store(2)
+	s.applyPeerSplit(noise.Payload{Ver: noise.ProtoVer, Flags: 3})
+	if s.peerSplit || s.batchMax.Load() != 1 {
+		t.Fatalf("старый пир: peerSplit=%v batchMax=%d", s.peerSplit, s.batchMax.Load())
+	}
+	s2 := &session{}
+	s2.batchMax.Store(2)
+	s2.applyPeerSplit(noise.Payload{Ver: noise.ProtoVer, Flags: 3 | noise.FlagSplit})
+	if !s2.peerSplit || s2.batchMax.Load() != 2 {
+		t.Fatalf("новый пир: peerSplit=%v batchMax=%d", s2.peerSplit, s2.batchMax.Load())
+	}
+}
+
+// Через настоящее рукопожатие стенда бит клиента доезжает до сессии хаба.
+func TestСтендПирОбъявилFlagSplit(t *testing.T) {
+	st := newStand(t)
+	if !st.s.peerSplit || st.s.batchMax.Load() != 2 {
+		t.Fatalf("peerSplit=%v batchMax=%d", st.s.peerSplit, st.s.batchMax.Load())
+	}
+}

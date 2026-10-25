@@ -369,6 +369,15 @@ func (w *worker) handshake(k skey, s *session, seg *link.Seg) {
 	s.phase = phHS
 }
 
+// applyPeerSplit запоминает, объявил ли пир сборку разрезанных записей (FlagSplit). Без бита пачка
+// не растёт и стоит на одном кадре: запись уходит целиком, прежний пир разрезанную не соберёт.
+func (s *session) applyPeerSplit(p noise.Payload) {
+	s.peerSplit = p.CanSplit()
+	if !s.peerSplit {
+		s.batchMax.Store(1)
+	}
+}
+
 // confirm — подтверждение пира: после него сессия несёт данные.
 func (w *worker) confirm(k skey, s *session, seg *link.Seg) {
 	if _, err := s.hs.ServerConfirm(s.rx, seg.Payload); err != nil {
@@ -382,6 +391,7 @@ func (w *worker) confirm(k skey, s *session, seg *link.Seg) {
 	// превращалась в «последняя метка всегда ноль», то есть в её отсутствие.
 	stamp := s.hs.Peer.Stamp
 	connID := s.hs.Peer.ConnID()
+	s.applyPeerSplit(s.hs.Peer)
 	if connID >= wire.ConnsMax {
 		connID = 0
 	}
@@ -926,7 +936,7 @@ func (w *worker) maintain() {
 					s.lastReport = now
 				}
 			}
-			if !w.h.opt.NoBatch && now >= s.coolUntil && now-s.lastGrow >= reasmGrowMS {
+			if !w.h.opt.NoBatch && s.peerSplit && now >= s.coolUntil && now-s.lastGrow >= reasmGrowMS {
 				if bm := int(s.batchMax.Load()); bm < wire.BatchFramesMax {
 					bm *= 2
 					if bm > wire.BatchFramesMax {

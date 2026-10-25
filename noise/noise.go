@@ -106,11 +106,15 @@ func (p Payload) ConnID() int { return int(p.Flags & 0x07) }
 // FlagSplit — «умею собирать запись, разрезанную между сегментами».
 //
 // Бит в ПОДПИСАННОЙ части рукопожатия, а не отдельное поле: место в аутентификаторе уже есть, а
-// новое поле на проводе стоило бы байт и было бы видно. Сторона, которая про этот бит не знает
-// (реализация на C маскирует flags как 0x07), его не выставит — и разрезанного не получит.
+// новое поле на проводе стоило бы байт и было бы видно. Обе реализации (Go и C) ставят бит всегда:
+// клиент — в msg1, хаб — в ответной нагрузке. Прежняя сторона, которая про бит не знает и маскирует
+// flags как 0x07, его не выставит; отправитель по правилу режет записи между сегментами
+// только если пир бит объявил, иначе везёт по одному кадру в записи. ProtoVer не менялся: старые
+// стороны чужую версию отвергают. Режим потока бит не несёт: там записи не режутся между
+// датаграммами. Приём разрезанных записей включён всегда.
 const FlagSplit = 0x08
 
-// CanSplit — согласована ли сборка разрезанных записей.
+// CanSplit — объявил ли пир, что собирает разрезанные записи (бит FlagSplit в его нагрузке).
 func (p Payload) CanSplit() bool { return p.Flags&FlagSplit != 0 }
 
 // HS — состояние рукопожатия. Живёт от начала до Split и обнуляется сразу после.
@@ -334,7 +338,7 @@ func (hs *HS) ClientHello(priv, hubPub [32]byte, sni string, mtu, connID int,
 
 	pay := Payload{
 		Ver:   ProtoVer,
-		Flags: byte(connID & 0x07),
+		Flags: byte(connID&0x07) | FlagSplit,
 		MTU:   uint16(mtu),
 		Stamp: uint64(time.Now().Unix()),
 	}
@@ -765,7 +769,7 @@ func (hs *HS) ServerWrite(mtu int) (out []byte, tx, rx *Keys, err error) {
 	body := sidPlain + wire.Tag + pad
 	out = append(out, 0x17, 0x03, 0x03, byte(body>>8), byte(body))
 	var plain [sidPlain]byte
-	mine := Payload{Ver: ProtoVer, MTU: uint16(mtu), Stamp: uint64(time.Now().Unix())}
+	mine := Payload{Ver: ProtoVer, Flags: FlagSplit, MTU: uint16(mtu), Stamp: uint64(time.Now().Unix())}
 	if err := mine.pack(plain[:], hs.rnd); err != nil {
 		return nil, nil, nil, err
 	}

@@ -870,7 +870,10 @@ type sess struct {
 	// batchMax — сколько кадров класть в одну запись СЕЙЧАС. Не постоянная: разрезанная запись
 	// гибнет целиком при потере любого сегмента, поэтому на рваном пути пачка обязана схлопываться
 	// до одного кадра. Растёт по чистой обратной связи, падает мгновенно.
-	batchMax   atomic.Int64
+	batchMax atomic.Int64
+	// peerSplit — пир объявил FlagSplit в рукопожатии; без него batchMax остаётся 1. Пишется один
+	// раз до начала обмена данными.
+	peerSplit  bool
 	coolUntil  atomic.Int64
 	lastReport int64
 	lastGrow   int64
@@ -980,6 +983,7 @@ func (c *Client) session(ctx context.Context, id int, dev tun.Device, devName st
 	// устройств». Ступень вторая (проверка самого пути пробами) начинается ниже, потому что канал
 	// у обоих может быть шире, чем путь между ними.
 	peerMTU := int(hres.peer.MTU)
+	s.applyPeerSplit(hres.peer)
 	s.mtuAgreed = wire.MTUDefault
 	if s.mtuLimit > 0 {
 		s.mtuAgreed = s.mtuLimit
@@ -1458,7 +1462,7 @@ func (c *Client) timeLoop(ctx context.Context, id int, s *sess, dev tun.Device, 
 			}
 		}
 		// Рост пачки на чистом пути: медленно вверх, мгновенно вниз (см. onCtlFrame).
-		if bm := s.batchMax.Load(); !c.opt.NoBatch && now >= s.coolUntil.Load() &&
+		if bm := s.batchMax.Load(); !c.opt.NoBatch && s.peerSplit && now >= s.coolUntil.Load() &&
 			now-s.lastGrow >= reasmGrowMS && bm < wire.BatchFramesMax {
 			// CAS: если за это время пришла потеря и схлопнула пачку, рост её не затирает.
 			s.batchMax.CompareAndSwap(bm, min(bm*2, wire.BatchFramesMax))
@@ -1605,4 +1609,13 @@ func (c *Client) applyMTU(dev tun.Device, devName string, mtu int, why string) {
 	}
 	c.logf("%s: MTU %d → %d (%s)", devName, old, mtu, why)
 	c.mtuNow.Store(int64(mtu))
+}
+
+// applyPeerSplit запоминает, объявил ли хаб сборку разрезанных записей (FlagSplit). Без бита
+// (прежняя версия) пачка не растёт и стоит на одном кадре: запись уходит целиком.
+func (s *sess) applyPeerSplit(p noise.Payload) {
+	s.peerSplit = p.CanSplit()
+	if !s.peerSplit {
+		s.batchMax.Store(1)
+	}
 }

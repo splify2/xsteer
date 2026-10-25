@@ -338,3 +338,32 @@ func TestОтказНеузнанному(t *testing.T) {
 		t.Errorf("отказ должен выглядеть как fatal handshake_failure настоящего TLS: % x", a)
 	}
 }
+
+// Бит FlagSplit едет в обе стороны, а номер соединения от него не страдает.
+func TestFlagSplitВОбеСтороны(t *testing.T) {
+	for id := 0; id < 8; id++ {
+		cli, hub, _, _, _, _ := runHandshake(t, true, 1400, 1380, id)
+		if !hub.Peer.CanSplit() || !cli.Peer.CanSplit() {
+			t.Fatalf("conn %d: бит не доехал (хаб видит %v, клиент %v)", id, hub.Peer.CanSplit(), cli.Peer.CanSplit())
+		}
+		if hub.Peer.ConnID() != id {
+			t.Fatalf("бит сломал номер соединения: %d вместо %d", hub.Peer.ConnID(), id)
+		}
+	}
+}
+
+// Прежняя сторона ставит flags = номер соединения без бита: CanSplit ложь, номер цел.
+func TestПрежняяСторонаБезБита(t *testing.T) {
+	var raw [sidPlain]byte
+	old := Payload{Ver: ProtoVer, Flags: 5, MTU: 1400, Stamp: 1}
+	if err := old.pack(raw[:], seeded{rand.New(rand.NewSource(3))}); err != nil {
+		t.Fatal(err)
+	}
+	got := unpackPayload(raw[:])
+	if got.CanSplit() {
+		t.Fatal("нагрузка без бита прочиталась как умеющая собирать")
+	}
+	if got.ConnID() != 5 {
+		t.Fatalf("номер соединения %d, ждали 5", got.ConnID())
+	}
+}

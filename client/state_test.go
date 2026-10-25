@@ -16,6 +16,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/splify2/xsteer/noise"
 )
 
 func TestУходПишетНольВСнимокНеВСчётчик(t *testing.T) {
@@ -39,5 +41,21 @@ func TestУходПишетНольВСнимокНеВСчётчик(t *testing
 	}
 	if st.Up || st.Conns != 0 {
 		t.Fatalf("последний снимок при уходе: up=%v conns=%d, ждали false/0", st.Up, st.Conns)
+	}
+}
+
+// Хаб без FlagSplit (прежняя версия): пачка стоит на одном кадре; с битом — прежнее начало (2).
+func TestХабБезFlagSplitНеПачкуется(t *testing.T) {
+	s := &sess{}
+	s.batchMax.Store(2)
+	s.applyPeerSplit(noise.Payload{Ver: noise.ProtoVer, Flags: 1})
+	if s.peerSplit || s.batchMax.Load() != 1 {
+		t.Fatalf("старый хаб: peerSplit=%v batchMax=%d", s.peerSplit, s.batchMax.Load())
+	}
+	s2 := &sess{}
+	s2.batchMax.Store(2)
+	s2.applyPeerSplit(noise.Payload{Ver: noise.ProtoVer, Flags: noise.FlagSplit})
+	if !s2.peerSplit || s2.batchMax.Load() != 2 {
+		t.Fatalf("новый хаб: peerSplit=%v batchMax=%d", s2.peerSplit, s2.batchMax.Load())
 	}
 }
