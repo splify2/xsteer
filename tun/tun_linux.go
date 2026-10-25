@@ -321,8 +321,10 @@ func SetupRoutes(name string, cidrs, endpoints []string) (bool, error) {
 			if err != nil || !addr.Is4() {
 				continue
 			}
-			if err := addBypass(name, addr); err != nil {
-				return full, err
+			if err := addBypassFn(name, addr); err != nil {
+				// Без обхода маршрут по умолчанию ставить нельзя: хаб ушёл бы в собственный
+				// туннель. «Полного туннеля» нет — сторож не запускается.
+				return false, err
 			}
 		}
 	}
@@ -333,6 +335,9 @@ func SetupRoutes(name string, cidrs, endpoints []string) (bool, error) {
 	}
 	return full, nil
 }
+
+// addBypassFn — подмена для проверок.
+var addBypassFn = addBypass
 
 // addBypass ставит /32 к хабу по маршруту, который система выбрала бы для него сейчас.
 func addBypass(name string, addr netip.Addr) error {
