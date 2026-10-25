@@ -94,11 +94,8 @@ func OpenQueues(name string, n int) ([]Device, error) {
 	return []Device{d}, nil
 }
 
-// OpenPlain и OpenQueuesPlain — те же самые: разгрузки сегментации на Wintun нет, и ключ «без
-// разгрузки» здесь ничего не меняет. Функции существуют, чтобы вызывающему не приходилось знать
-// платформу.
-func OpenPlain(name string) (Device, error) { return Open(name) }
-
+// OpenQueuesPlain — то же самое: разгрузки сегментации на Wintun нет, и ключ «без разгрузки» здесь
+// ничего не меняет. Функция существует, чтобы вызывающему не приходилось знать платформу.
 func OpenQueuesPlain(name string, n int) ([]Device, error) { return OpenQueues(name, n) }
 
 // guidFromName — устойчивый GUID из имени. Версия и вариант выставляются как у GUID версии 4, чтобы
@@ -366,14 +363,6 @@ func DefaultRouteDown(name string) {
 	for _, hp := range halves {
 		_ = luid.DeleteRoute(hp, netip.IPv4Unspecified())
 	}
-}
-
-// DefaultRouteIsUp — держит ли туннель маршрут по умолчанию прямо сейчас.
-func DefaultRouteIsUp(name string) bool {
-	routesMu.Lock()
-	defer routesMu.Unlock()
-	r, ok := routesOf[name]
-	return ok && r.defaultUp
 }
 
 // SetDNS задаёт серверы имён на устройстве туннеля.

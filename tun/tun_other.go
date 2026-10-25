@@ -20,9 +20,6 @@ func Open(name string) (Device, error) {
 	return nil, fmt.Errorf("%w: TUN на %s ещё не сделан", ErrNoDevice, runtime.GOOS)
 }
 
-// OpenPlain — то же: разгрузки сегментации без устройства не бывает.
-func OpenPlain(name string) (Device, error) { return Open(name) }
-
 // OpenQueuesPlain — то же.
 func OpenQueuesPlain(name string, n int) ([]Device, error) { return OpenQueues(name, n) }
 
@@ -57,8 +54,7 @@ func SetupRoutes(name string, cidrs, endpoints []string) (bool, error) {
 func DefaultRouteUp(name string) error {
 	return fmt.Errorf("не сделано на %s", runtime.GOOS)
 }
-func DefaultRouteDown(name string)      {}
-func DefaultRouteIsUp(name string) bool { return false }
+func DefaultRouteDown(name string) {}
 func SetDNS(name string, servers []string) error {
 	return fmt.Errorf("не сделано на %s", runtime.GOOS)
 }

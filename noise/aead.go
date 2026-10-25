@@ -139,7 +139,6 @@ type sealer interface {
 	seal(dst, nonce, pt, aad []byte) ([]byte, error)
 	open(dst, nonce, ct, aad []byte) ([]byte, error)
 	overhead() int
-	name() string
 	close()
 }
 
@@ -249,7 +248,6 @@ func (g *goSealer) open(dst, nonce, ct, aad []byte) ([]byte, error) {
 }
 
 func (g *goSealer) overhead() int { return g.a.Overhead() }
-func (g *goSealer) name() string  { return "go/" + g.kind.String() }
 func (g *goSealer) close()        {}
 
 // Close освобождает ресурсы шифра.

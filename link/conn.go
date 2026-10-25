@@ -487,7 +487,7 @@ func (c *Conn) OnSeg(s *Seg) (data bool, err error) {
 	// принимаем мы при загрузке пятьдесят тысяч сегментов в секунду. По таймеру голых ACK выходило
 	// восемь штук на восемь мегабайт — то есть признак «туннель, а не загрузка» оставался на месте.
 	if c.rxSinceAck >= AckBare {
-		if now := int64(time.Since(epoch))+1; now-c.lastBare >= AckBareGapNS {
+		if now := int64(time.Since(epoch)) + 1; now-c.lastBare >= AckBareGapNS {
 			_ = c.send(ACK, nil, OptNone)
 			c.rxSinceAck = 0
 			c.lastBare = now

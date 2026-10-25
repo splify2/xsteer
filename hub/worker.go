@@ -729,15 +729,6 @@ func (w *worker) tunLoop(ctx context.Context) {
 	}
 }
 
-// batchFull — влезет ли ещё один кадр в запись.
-func batchFull(frames [][]byte, next int) bool {
-	total := wire.BatchHdr
-	for _, f := range frames {
-		total += 2 + len(f)
-	}
-	return total+2+next > wire.MaxPlain
-}
-
 // sendFrames увозит кадры одной записью: один кадр — как есть, несколько — в контейнере.
 func (w *worker) sendFrames(d *session, row []byte, frames [][]byte) {
 	if len(frames) == 1 {

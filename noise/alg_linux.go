@@ -204,7 +204,6 @@ func (s *algSealer) setKey(key []byte) error {
 }
 
 func (s *algSealer) overhead() int { return s.tag }
-func (s *algSealer) name() string  { return "ядро/" + algName(s.kind) }
 
 func (s *algSealer) close() {
 	s.mu.Lock()

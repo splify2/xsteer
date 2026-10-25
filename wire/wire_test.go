@@ -749,7 +749,7 @@ func (f readerFunc) Read(b []byte) (int, error) { return f(b) }
 func TestПределПачкиИПределЗаписи(t *testing.T) {
 	mtu := MTUDefault
 
-	// Ровно тот ограничитель, что стоит в client.streamOut, client.txLoop и hub.batchFull.
+	// Ровно тот ограничитель, что стоит в client.streamOut, client.txLoop и hub.
 	frames := make([][]byte, 0, BatchFramesMax)
 	total := BatchHdr
 	add := func(n int) bool {

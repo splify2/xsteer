@@ -44,10 +44,6 @@ type ifreq struct {
 // проигрывает та, что настроила первой, а заметно это будет как «MTU иногда не тот».
 func Open(name string) (Device, error) { return openOne(name, false, true) }
 
-// OpenPlain — устройство БЕЗ разгрузки сегментации. Нужно ровно двум: ключу командной строки, если
-// разгрузка однажды окажется виновата, и тесту, который проверяет прежний путь.
-func OpenPlain(name string) (Device, error) { return openOne(name, false, false) }
-
 func openOne(name string, multiQueue, offload bool) (Device, error) {
 	fd, err := unix.Open("/dev/net/tun", unix.O_RDWR|unix.O_NONBLOCK|unix.O_CLOEXEC, 0)
 	if err != nil {
@@ -398,13 +394,6 @@ func DefaultRouteDown(name string) {
 	for _, h := range halves {
 		_ = run("ip", "route", "del", h, "dev", name)
 	}
-}
-
-// DefaultRouteIsUp — держит ли туннель маршрут по умолчанию прямо сейчас.
-func DefaultRouteIsUp(name string) bool {
-	routesMu.Lock()
-	defer routesMu.Unlock()
-	return defaultUp[name]
 }
 
 // SetDNS на Linux не трогает /etc/resolv.conf: клиент живёт на роутере, где именами
